@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = env("DATABASE_PROVIDER") ?? "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Narrative {
+  id           String        @id @default(cuid())
+  title        String
+  logline      String
+  status       NarrativeStatus @default(DRAFT)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  characters   Character[]
+  episodes     Episode[]
+  polls        Poll[]
+  engagements  Engagement[]
+  prompts      Prompt[]
+  approvals    ApprovalRequest[]
+}
+
+model Character {
+  id          String     @id @default(cuid())
+  name        String
+  archetype   String
+  description String
+  narrative   Narrative  @relation(fields: [narrativeId], references: [id])
+  narrativeId String
+}
+
+model Episode {
+  id          String     @id @default(cuid())
+  title       String
+  summary     String
+  order       Int
+  beats       Json
+  publishedAt DateTime?
+  narrative   Narrative  @relation(fields: [narrativeId], references: [id])
+  narrativeId String
+  polls       Poll[]
+}
+
+model Poll {
+  id          String    @id @default(cuid())
+  question    String
+  episode     Episode?  @relation(fields: [episodeId], references: [id])
+  episodeId   String?
+  narrative   Narrative @relation(fields: [narrativeId], references: [id])
+  narrativeId String
+  options     PollOption[]
+}
+
+model PollOption {
+  id        String @id @default(cuid())
+  label     String
+  votes     Int    @default(0)
+  poll      Poll   @relation(fields: [pollId], references: [id])
+  pollId    String
+}
+
+model Engagement {
+  id          String    @id @default(cuid())
+  channel     Channel
+  impressions Int
+  clicks      Int
+  recordedAt  DateTime  @default(now())
+  narrative   Narrative @relation(fields: [narrativeId], references: [id])
+  narrativeId String
+}
+
+model Prompt {
+  id          String    @id @default(cuid())
+  version     Int       @default(1)
+  content     String
+  embedding   Json?
+  narrative   Narrative @relation(fields: [narrativeId], references: [id])
+  narrativeId String
+  createdAt   DateTime  @default(now())
+}
+
+model ApprovalRequest {
+  id           String    @id @default(cuid())
+  status       ApprovalStatus @default(PENDING)
+  narrative    Narrative @relation(fields: [narrativeId], references: [id])
+  narrativeId  String
+  prompt       Prompt?   @relation(fields: [promptId], references: [id])
+  promptId     String?
+  reviewerEmail String
+  createdAt    DateTime  @default(now())
+  approvedAt   DateTime?
+}
+
+enum NarrativeStatus {
+  DRAFT
+  SCHEDULED
+  LIVE
+  ARCHIVED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Channel {
+  instagram
+  facebook
+  tiktok
+  youtube
+}
